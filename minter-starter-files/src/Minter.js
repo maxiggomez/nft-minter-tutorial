@@ -1,25 +1,70 @@
 import { useEffect, useState } from "react";
+import { connectWallet,
+         getCurrentWalletConnected,
+         mintNFT 
+} from "./utils/interact.js";
 
 const Minter = (props) => {
 
-  //State variables
+  //State variables . Son variables del tipo statehooks que maneja React
   const [walletAddress, setWallet] = useState("");
   const [status, setStatus] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [url, setURL] = useState("");
  
-  useEffect(async () => { //TODO: implement
-    
+  // llamado después de que su componente sea renderizado, solo en el primer render
+  useEffect(async () => {
+    // Verificamos si nuestra app ya está conectada a Metamask
+    // Si estamos conectados nos va a devovler nuestra address y status
+    const {address, status} = await getCurrentWalletConnected();
+    setWallet(address)
+    setStatus(status);
+
+    // Nos quedamos escuchando el evento de metamask que nos informa cambios en la wallet.
+    addWalletListener();
   }, []);
 
-  const connectWalletPressed = async () => { //TODO: implement
-   
+  // llamado cuando queremos conectar la wallet a metamask
+  const connectWalletPressed = async () => { 
+    const walletResponse = await connectWallet(); // llamamos a nuestra clase que se conecta con metamask
+    setStatus(walletResponse.status); //Guardo el valor de status devuelto por Metamask
+    setWallet(walletResponse.address); //Guardo el valor de address devuelto por Metamask
   };
 
-  const onMintPressed = async () => { //TODO: implement
-    
+  // llamado cuando desde el front hacen click en el botón de Mint NFT
+  const onMintPressed = async () => {
+    // Llamamos a nuestra función que hace el mint y lo impacta en el contrato.
+    const { status } = await mintNFT(url, name, description);
+    setStatus(status);
   };
+
+  // Función para escuchar el evento de Metamask que se dispara
+  //  cuando hay algún cambio en la wallet o cuenta.
+  function addWalletListener() {
+    if (window.ethereum) {
+      window.ethereum.on("accountsChanged", (accounts) => {
+        if (accounts.length > 0) {
+          setWallet(accounts[0]);
+          setStatus("👆🏽 Write a message in the text-field above.");
+        } else {
+          setWallet("");
+          setStatus("🦊 Connect to Metamask using the top right button.");
+        }
+      });
+    } else {
+      setStatus(
+        <p>
+          {" "}
+          🦊{" "}
+          <a target="_blank" href={`https://metamask.io/download.html`}>
+            You must install Metamask, a virtual Ethereum wallet, in your
+            browser.
+          </a>
+        </p>
+      );
+    }
+  }
 
   return (
     <div className="Minter">
